@@ -1,7 +1,7 @@
 require 'turbolinks/version'
 require 'turbolinks/redirection'
 require 'turbolinks/assertions'
-require 'turbolinks/source'
+#require 'turbolinks/source'
 
 module Turbolinks
   module Controller
