@@ -20,12 +20,12 @@ module Turbolinks
     config.assets.paths += [Turbolinks::Source.asset_path] if config.respond_to?(:assets)
 
     initializer :turbolinks do |app|
-      ActiveSupport.on_load(:action_view) do
-        include Turbolinks::ViewHelper
-      end
+      if app.config.turbolinks.auto_include
+        ActiveSupport.on_load(:action_view) do
+          include Turbolinks::ViewHelper
+        end
 
-      ActiveSupport.on_load(:action_controller) do
-        if app.config.turbolinks.auto_include
+        ActiveSupport.on_load(:action_controller) do
           include Controller
 
           ::ActionDispatch::Assertions.include ::Turbolinks::Assertions
