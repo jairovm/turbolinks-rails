@@ -5,7 +5,7 @@ module Turbolinks
     def render(*args, &block)
       options = args.dup.extract_options!
 
-      if turbolinks_form_request?
+      if options[:location].blank? && turbolinks_form_request?
         render_with_turbolinks(options, &block)
       else
         super
