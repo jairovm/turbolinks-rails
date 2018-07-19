@@ -2,6 +2,7 @@ require 'turbolinks/version'
 require 'turbolinks/redirection'
 require 'turbolinks/assertions'
 require 'turbolinks/view_helper'
+require 'turbolinks/rendering'
 #require 'turbolinks/source'
 
 module Turbolinks
@@ -9,7 +10,7 @@ module Turbolinks
     extend ActiveSupport::Concern
 
     included do
-      include Redirection
+      include Redirection, Rendering
     end
   end
 
