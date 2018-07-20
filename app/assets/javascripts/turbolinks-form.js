@@ -75,7 +75,7 @@
     }
 
     Turbolinks.dispatch("turbolinks:load");
-    window.scroll(0, 0);
+    target.scrollIntoView();
   }
 
   // Sets up event delegation to forms with data-turbolinks-form attribute
