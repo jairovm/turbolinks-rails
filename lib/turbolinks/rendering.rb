@@ -41,7 +41,7 @@ module Turbolinks
       render_options[:layout] = false if options[:target].present?
 
       if options[:template].present?
-        render_options[:file] = options[:template]
+        render_options[:template] = options[:template]
         render_options[:locals]   = options[:locals]
       else
         case action_name
