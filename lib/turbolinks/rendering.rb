@@ -48,7 +48,7 @@ module Turbolinks
         end
       end
 
-      [target, _normalize_render(*args << options, &block)]
+      [target, _normalize_render(*(args << options), &block)]
     end
   end
 end
