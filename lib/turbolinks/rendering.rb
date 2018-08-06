@@ -5,8 +5,16 @@ module Turbolinks
     def render(*args, &block)
       options = args.dup.extract_options!
 
-      if options[:location].blank? && turbolinks_form_request?
-        render_with_turbolinks(*args, &block)
+      if turbolinks_form_request?
+        # Hack to support respond_with :location
+        if options.key?(:location) && !options.key?(:target)
+          super
+        else
+          render_with_turbolinks(*args, &block)
+        end
+
+      elsif options.key?(:location) && options.key?(:target)
+        redirect_to options[:location]
       else
         super
       end
@@ -41,7 +49,7 @@ module Turbolinks
       target           = options.delete(:target)
       options[:layout] = false if target.present?
 
-      unless options.symbolize_keys.has_key?(:action)
+      unless options.symbolize_keys.key?(:action)
         case action_name
         when 'create' then options[:action] = :new
         when 'update' then options[:action] = :edit
