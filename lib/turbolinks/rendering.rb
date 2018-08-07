@@ -5,6 +5,10 @@ module Turbolinks
     def render(*args, &block)
       options = args.dup.extract_options!
 
+      if options.key?(:target) && !options.key?(:location)
+        raise 'Using `target` without fallback `location` is not allowed.'
+      end
+
       if turbolinks_form_request?
         # Hack to support respond_with :location
         if options.key?(:location) && !options.key?(:target)
@@ -13,7 +17,7 @@ module Turbolinks
           render_with_turbolinks(*args, &block)
         end
 
-      elsif options.key?(:location) && options.key?(:target)
+      elsif options.key?(:target) && options.key?(:location)
         redirect_to options[:location]
       else
         super
