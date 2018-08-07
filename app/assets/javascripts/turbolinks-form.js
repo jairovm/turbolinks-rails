@@ -1,4 +1,6 @@
-(function($) {
+import Turbolinks from 'turbolinks'
+
+(function() {
 
   // As documented on the reference below, turbolinks 5 does not treat a render
   // after a form submit by default, leaving the users to implement their own
@@ -18,9 +20,9 @@
   // The reason we don't do such things is simply that this is a solution to
   // render errors in forms, and usually we render the same page/form rendered
   // before the submit.
-  var handleResponse = function(responseText, target) {
+  var handleResponse = function(html, target) {
     // parses response
-    var newDom = new DOMParser().parseFromString(responseText, "text/html");
+    var newDom = new DOMParser().parseFromString(html, "text/html");
 
     // Some browsers (PhantomJS and earlier versions of Firefox and IE) don't implement
     // parsing from string for "text/html" format. So we use an alternative method
@@ -28,7 +30,7 @@
     // https://developer.mozilla.org/en-US/Add-ons/Code_snippets/HTML_to_DOM#Parsing_Complete_HTML_to_DOM
     if (newDom == null) {
       newDom = document.implementation.createHTMLDocument("document");
-      newDom.documentElement.innerHTML = responseText;
+      newDom.documentElement.innerHTML = html;
     }
 
     if (newDom == null) {
@@ -79,24 +81,26 @@
   }
 
   // Sets up event delegation to forms with data-turbolinks-form attribute
-  $(document).on("ajax:beforeSend", "[data-turbolinks-form]", function(e) {
-    var xhr = e.detail[0];
+  document.addEventListener('ajax:beforeSend', function(e) {
+    if (e.target.getAttribute('data-turbolinks-form')) {
+      var xhr = e.detail[0];
 
-    // adds the turbolinks-form-submit header for forms with data-turbolinks-form
-    // attribute being submitted
-    xhr.setRequestHeader('turbolinks-form-submit', '1');
+      // adds the turbolinks-form-submit header for forms with data-turbolinks-form
+      // attribute being submitted
+      xhr.setRequestHeader('turbolinks-form-submit', '1');
 
-    // dispatches turbolinks event
-    Turbolinks.dispatch('turbolinks:request-start', {data: {xhr: xhr}});
+      // dispatches turbolinks event
+      Turbolinks.dispatch('turbolinks:request-start', {data: {xhr: xhr}});
+    }
   });
 
-  $.fn.renderTurbolinksForm = function(responseText) {
-    var target = this[0];
+  Turbolinks.renderForm = function(selector, html) {
+    var target = document.querySelector(selector);
     if (!target) return this;
 
-    handleResponse(responseText, target);
+    handleResponse(html, target);
 
     return this;
   };
 
-}(jQuery));
+}());
