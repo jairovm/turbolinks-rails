@@ -43,7 +43,7 @@ module Turbolinks
 
       <<~JS
         (function(){
-          Turbolinks.renderForm('#{target || 'body'}', '#{escaped_html}');
+          TurbolinksForm.render('#{target || 'body'}', '#{escaped_html}');
         })();
       JS
     end

@@ -1,5 +1,3 @@
-import Turbolinks from 'turbolinks'
-
 (function() {
 
   // As documented on the reference below, turbolinks 5 does not treat a render
@@ -20,7 +18,10 @@ import Turbolinks from 'turbolinks'
   // The reason we don't do such things is simply that this is a solution to
   // render errors in forms, and usually we render the same page/form rendered
   // before the submit.
-  var handleResponse = function(html, target) {
+  var handleResponse = function(selector, html) {
+    var target = document.querySelector(selector);
+    if (!target) return null;
+
     // parses response
     var newDom = new DOMParser().parseFromString(html, "text/html");
 
@@ -94,13 +95,8 @@ import Turbolinks from 'turbolinks'
     }
   });
 
-  Turbolinks.renderForm = function(selector, html) {
-    var target = document.querySelector(selector);
-    if (!target) return this;
-
-    handleResponse(html, target);
-
-    return this;
-  };
+  window.TurbolinksForm = {
+    render: handleResponse
+  }
 
 }());
