@@ -1,102 +1,134 @@
-(function() {
+class TurbolinksForm {
+  constructor(target, html) {
+    this.target = target
+    this.html   = html
+  }
 
-  // As documented on the reference below, turbolinks 5 does not treat a render
-  // after a form submit by default, leaving the users to implement their own
-  // solutions.
-  //
-  // https://github.com/turbolinks/turbolinks/issues/85#issuecomment-323446272
-  //
-  // The code below imitates the behavior of turbolinks when treating regular GET
-  // responses. Namely, it:
-  //   - Replaces only the body of the page
-  //   - It runs all script tags on the body of the new page
-  //   - It fires the turbolinks:load event
-  //
-  // This doesn't mean it does ALL what turbolinks does. For example, we don't
-  // merge script tags from old and new page <head> elements.
-  // This also doesn't change the browser history or does any change to the URL.
-  // The reason we don't do such things is simply that this is a solution to
-  // render errors in forms, and usually we render the same page/form rendered
-  // before the submit.
-  var handleResponse = function(selector, html) {
-    var target = document.querySelector(selector);
-    if (!target) return null;
+  get newDom() {
+    if (this._newDom) return this._newDom
 
-    // parses response
-    var newDom = new DOMParser().parseFromString(html, "text/html");
+    this._newDom = new DOMParser().parseFromString(this.html, 'text/html')
 
-    // Some browsers (PhantomJS and earlier versions of Firefox and IE) don't implement
-    // parsing from string for "text/html" format. So we use an alternative method
-    // described here:
+    // Some browsers (PhantomJS and earlier versions of Firefox and IE) don't
+    // implement parsing from string for 'text/html' format. So we use an
+    // alternative method described here:
     // https://developer.mozilla.org/en-US/Add-ons/Code_snippets/HTML_to_DOM#Parsing_Complete_HTML_to_DOM
-    if (newDom == null) {
-      newDom = document.implementation.createHTMLDocument("document");
-      newDom.documentElement.innerHTML = html;
+    if (this._newDom == null) {
+      this._newDom = document.implementation.createHTMLDocument('document')
+      this._newDom.documentElement.innerHTML = this.html
     }
 
-    if (newDom == null) {
-      console.error("turbolinks-form was not able to parse response from server.");
+    if (this._newDom == null) {
+      console.error('turbolinks-form was not able to parse response from server.')
     }
 
-    // dispatches turbolinks event
-    Turbolinks.dispatch('turbolinks:before-render', {data: {newBody: newDom.body}});
+    return this._newDom
+  }
 
-    // Removes/saves all script tags contents.
-    // Most browsers don't run the new <script> tags when we replace the page body,
-    // but some do (like PhantomJS). So we clear all script tags to ensure nothing
-    // will run on any browser.
-    var newBodyScripts = newDom.body.getElementsByTagName('script');
-    var newBodyScriptContents = [];
-    for (var i=0; i<newBodyScripts.length; i++) {
-      var script = newBodyScripts[i];
-      newBodyScriptContents.push(script.text);
-      script.text = "";
+  get newBody() {
+    if (this._newBody) return this._newBody
+    this.removeScriptsFromDocument()
+    return this._newBody = this.newDom.body
+  }
+
+  get scriptTexts() {
+    if (this._scriptTexts) return this._scriptTexts
+
+    this._scriptTexts = []
+
+    const scripts = this.newDom.body.getElementsByTagName('script')
+    for (var i=0, len=scripts.length; i<len; i++) {
+      var script = scripts[i]
+      this._scriptTexts.push(script.text)
+      script.parentNode.removeChild(script)
     }
 
-    if (target === document.body) {
-      document.body = newDom.body;
-      target = document.body;
+    return this._scriptTexts
+  }
+
+  removeScriptsFromDocument() { this.scriptTexts; }
+
+  append() {
+    while (this.newBody.firstChild) {
+      this.target.appendChild(
+        this.newBody.removeChild(this.newBody.firstChild)
+      )
+    }
+  }
+
+  remove() {
+    this.target.parentNode.removeChild(this.target)
+    this.target = null
+  }
+
+  render() {
+    if (this.target === document.body) {
+      document.body = this.newBody
+      this.target   = document.body
     } else {
-      while (target.firstChild) {
-        target.removeChild(target.firstChild);
+      while (this.target.firstChild) {
+        this.target.removeChild(this.target.firstChild)
       }
-      while (newDom.body.firstChild) {
-        target.appendChild(newDom.body.removeChild(newDom.body.firstChild));
-      }
+      this.append()
     }
+  }
+
+  replace() {
+    this.target.parentNode.replaceChild(this.newBody.firstChild, this.target)
+  }
+
+  executeScripts() {
+    for (var i=0, len=this.scriptTexts.length; i<len; i++) {
+      var script  = document.createElement('script')
+      script.text = this.scriptTexts.pop()
+      document.body.appendChild(script)
+    }
+  }
+
+  scrollToTarget() {
+    if (this.target) this.target.scrollIntoView()
+  }
+
+  //%i[append remove render replace].freeze
+  static append(selector, html)  { this.process('append', selector, html)  }
+  static remove(selector, html)  { this.process('remove', selector, html)  }
+  static render(selector, html)  { this.process('render', selector, html)  }
+  static replace(selector, html) { this.process('replace', selector, html) }
+
+  static process(action, selector, html) {
+    const target = document.querySelector(selector)
+    if (!target) return null
+
+    const object = new this(target, html)
+
+    Turbolinks.dispatch('turbolinks:before-render', {
+      data: {newBody: object.newDom.body}
+    })
+
+    object[action]()
+
+    Turbolinks.dispatch('turbolinks:render')
+
+    object.executeScripts()
+
+    Turbolinks.dispatch('turbolinks:load')
+
+    object.scrollToTarget()
+  }
+}
+
+window.TurbolinksForm = TurbolinksForm
+
+// Sets up event delegation to forms with data-turbolinks-form attribute
+document.addEventListener('ajax:beforeSend', function(e) {
+  if (e.target.getAttribute('data-turbolinks-form')) {
+    var xhr = e.detail[0]
+
+    // adds the turbolinks-form-submit header for forms with data-turbolinks-form
+    // attribute being submitted
+    xhr.setRequestHeader('turbolinks-form-submit', '1')
 
     // dispatches turbolinks event
-    Turbolinks.dispatch('turbolinks:render');
-
-    // Add scripts to body, so they are run on any browser
-    var bodyScripts = target.getElementsByTagName('script');
-    for (var i=0; i<bodyScripts.length; i++) {
-      var script = bodyScripts[i];
-      var newScript = document.createElement("script");
-      newScript.text = newBodyScriptContents[i];
-      script.parentNode.replaceChild(newScript, script);
-    }
-
-    Turbolinks.dispatch("turbolinks:load");
-    target.scrollIntoView();
+    Turbolinks.dispatch('turbolinks:request-start', {data: {xhr: xhr}})
   }
-
-  // Sets up event delegation to forms with data-turbolinks-form attribute
-  document.addEventListener('ajax:beforeSend', function(e) {
-    if (e.target.getAttribute('data-turbolinks-form')) {
-      var xhr = e.detail[0];
-
-      // adds the turbolinks-form-submit header for forms with data-turbolinks-form
-      // attribute being submitted
-      xhr.setRequestHeader('turbolinks-form-submit', '1');
-
-      // dispatches turbolinks event
-      Turbolinks.dispatch('turbolinks:request-start', {data: {xhr: xhr}});
-    }
-  });
-
-  window.TurbolinksForm = {
-    render: handleResponse
-  }
-
-}());
+})

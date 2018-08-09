@@ -43,15 +43,24 @@ module Turbolinks
 
       <<~JS
         (function(){
-          TurbolinksForm.render('#{target || 'body'}', '#{escaped_html}');
+          TurbolinksForm.#{target[:action]}('#{target[:selector]}', '#{escaped_html}');
         })();
       JS
     end
 
     def prepare_render_options(*args, &block)
-      options          = args.extract_options!
-      target           = options.delete(:target)
+      options         = args.extract_options!
+      target          = options.delete(:target) || {}
+      allowed_actions = %i[append remove render replace].freeze
+
       options[:layout] = false if target.present?
+
+      target[:action]   ||= :render
+      target[:selector] ||= :body
+
+      unless allowed_actions.include?(target[:action].to_sym)
+        raise "`#{target[:action]}` action is not allowed"
+      end
 
       unless options.symbolize_keys.key?(:action)
         case action_name
