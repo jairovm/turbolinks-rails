@@ -46,7 +46,7 @@ class TurbolinksForm {
     return this._scriptTexts
   }
 
-  removeScriptsFromDocument() { this.scriptTexts; }
+  removeScriptsFromDocument() { this.scriptTexts }
 
   append() {
     while (this.newBody.firstChild) {
@@ -89,7 +89,6 @@ class TurbolinksForm {
     if (this.target) this.target.scrollIntoView()
   }
 
-  //%i[append remove render replace].freeze
   static append(selector, html)  { this.process('append', selector, html)  }
   static remove(selector, html)  { this.process('remove', selector, html)  }
   static render(selector, html)  { this.process('render', selector, html)  }
@@ -130,5 +129,14 @@ document.addEventListener('ajax:beforeSend', function(e) {
 
     // dispatches turbolinks event
     Turbolinks.dispatch('turbolinks:request-start', {data: {xhr: xhr}})
+  }
+})
+
+document.addEventListener('ajax:send', function(e) {
+  var xhr = e.detail[0]
+  xhr.onloadend = function(a) {
+    if (xhr.getResponseHeader('turbolinks-form-render')) {
+      Turbolinks.dispatch('turbolinks:request-end', {data: {xhr: xhr}})
+    }
   }
 })

@@ -34,6 +34,7 @@ module Turbolinks
       self.response_body    = build_turbolinks_response_to_render(*args, &block)
       self.status           = 200
       response.content_type = 'text/javascript'
+      response.headers['turbolinks-form-render'] = '1'
     end
 
     def build_turbolinks_response_to_render(*args, &block)
